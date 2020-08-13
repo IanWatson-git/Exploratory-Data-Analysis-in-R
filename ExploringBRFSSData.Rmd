@@ -1,0 +1,195 @@
+---
+title: "ExploringBRFSSData"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(SASxport)
+```
+
+### Load data
+
+```{r load-data}
+brfss <- read.xport("LLCP2018.XPT ")
+head(brfss)
+```
+
+* * *
+
+## Part 1: Data
+##Overview
+Overview of the dataset as described by the CDC:
+The Behavioral Risk Factor Surveillance System (BRFSS) is a collaborative project between all of the states in the United States (US) and participating US territories and the Centers for Disease Control and Prevention (CDC). The BRFSS is administered and supported by CDC's Population Health Surveillance Branch, under the Division of Population Health at the National Center for Chronic Disease Prevention and Health Promotion. The BRFSS is a system of ongoing health-related telephone surveys designed to collect data on health-related risk behaviors, chronic health conditions, health care access, and use of preventive services from the noninstitutionalized adult population (≥ 18 years) residing in the United States.
+
+##Sampling
+According to the CDC, in a telephone survey such as the BRFSS, a sample record is one telephone number in the list of all telephone numbers the system randomly selects for dialing. Samples were collected from both landline and cellular telephones. 
+
+Landline sampling commonly used a disproportionate stratified sample (DSS) design. Telephone numbers were divided into two strata based on the number of listed household numbers with the same area code.
+
+Cellular sampling used a random samplng design. BRFSS formed intervals by dividing the population count of telephone numbers by the desired sample size and then selected a numbers randomly from each interval. 
+##Generalizability 
+BRFSS is an observational study that used a combination of disproportionate stratified sampling and random sampling methods. One limitation to this survey is that all respondents own a phone and are willing to answer that phone. Many people ignore unknown numbers and it is worth noting that this could impact our sample. Consequently, we can infer that the results of this study are generalizable to the population of noninstitutionalized adults over the age of 18 living in the United States that own telephones. 
+
+##Causality 
+Since BRFSS is an observational study, the results cannot be used to suggest causality. Instead, we can identify correlations between variables.
+
+* * *
+
+## Part 2: Research questions
+Multiple populations are at risk of healthcare disparities (due to factors such as race, ethinicity, and gender), which can negatively impact health. To better understand the association between race and gender with health care, I aim to explore the following three questions. 
+
+**Research quesion 1:**
+Is there an association between race/ethnicity and the likelihood of having healthcare coverage of any type?  
+**Research quesion 2:**
+Among people with healthcare coverage, is there an association between race/ethnicity and the likelihood of receiving preventative care, specifically prostate-specific antigen (PSA) or pap smear testing (based on sex) and diabetes screening?
+**Research quesion 3:**
+Is identifying as transgender associated with poor mental health, and if so, does the association vary amongst transgender men, transgender women, and transgender nonconforming individuals?
+
+* * *
+
+## Part 3: Exploratory data analysis
+**Research quesion 1:**
+Is there an association between race/ethnicity and the likelihood of having healthcare coverage of any type?
+
+Since the likelihood of having healthcare coverage could be influenced by a number of factors, I'm going to control for educational level as a surrogate for socioeconomic status. To limit the scope of this analysis, I decided to use the four most common races/ethnicities represented in this survey: White (non-Hispanic), Black (non-Hispanic), Asian (Non-Hispanic), and Hispanic.
+```{r}
+#Create a dataframe for each race that includes samples who explicitly do or do not have healthcare coverage. 
+wht_cov <- brfss %>%
+  filter(X.RACE == 1) %>%
+  filter(HLTHPLN1 == 1 | HLTHPLN1 == 2) %>%
+  filter(EDUCA != 9, !is.na(EDUCA))%>%
+  select(HLTHPLN1,EDUCA)
+head(wht_cov)
+blk_cov <- brfss %>%
+  filter(X.RACE == 2) %>%
+  filter(HLTHPLN1 == 1 | HLTHPLN1 == 2) %>%
+  filter(EDUCA != 9, !is.na(EDUCA))%>%
+  select(HLTHPLN1,EDUCA)
+head(blk_cov)
+asn_cov <- brfss %>%
+  filter(X.RACE == 4) %>%
+  filter(HLTHPLN1 == 1 | HLTHPLN1 == 2) %>%
+  filter(EDUCA != 9, !is.na(EDUCA))%>%
+  select(HLTHPLN1,EDUCA)
+head(asn_cov)
+hsp_cov <- brfss %>%
+  filter(X.RACE == 8) %>%
+  filter(HLTHPLN1 == 1 | HLTHPLN1 == 2) %>%
+  filter(EDUCA != 9, !is.na(EDUCA))%>%
+  select(HLTHPLN1,EDUCA)
+head(hsp_cov)
+#Now, create frequency tables that display the percentage of samples who have healthcare coverage across each level of education. Plot these tables. 
+wht_cov_per <- prop.table(with(wht_cov, table(HLTHPLN1,EDUCA)), margin =2)
+wht_cov_per <- data.frame(wht_cov_per)
+View(wht_cov_per)
+ggplot(data=wht_cov_per, aes(x=EDUCA,y=Freq,fill=HLTHPLN1)) + geom_bar(stat="identity") + labs(title="Proportion of Respondents Who\nHave Healthcare Coverage of Any Type", subtitle = "White (non-Hispanic)", x="Education Level", y="Frequency", fill="Healthcare\nCoverage")
+blk_cov_per <- prop.table(with(blk_cov, table(HLTHPLN1,EDUCA)), margin =2)
+blk_cov_per <- data.frame(blk_cov_per)
+View(blk_cov_per)
+ggplot(data=blk_cov_per, aes(x=EDUCA,y=Freq,fill=HLTHPLN1)) + geom_bar(stat="identity") + labs(title="Proportion of Respondents Who\nHave Healthcare Coverage of Any Type", subtitle = "Black (non-Hispanic)", x="Education Level", y="Frequency", fill="Healthcare\nCoverage")
+asn_cov_per <- prop.table(with(asn_cov, table(HLTHPLN1,EDUCA)),margin=2)
+asn_cov_per <- data.frame(asn_cov_per)
+View(asn_cov_per)
+ggplot(data=asn_cov_per, aes(x=EDUCA,y=Freq,fill=HLTHPLN1)) + geom_bar(stat="identity") + labs(title="Proportion of Respondents Who\nHave Healthcare Coverage of Any Type", subtitle = "Asian (non-Hispanic)", x="Education Level", y="Frequency", fill="Healthcare\nCoverage")
+hsp_cov_per <- prop.table(with(hsp_cov, table(HLTHPLN1,EDUCA)),margin=2)
+hsp_cov_per <- data.frame(hsp_cov_per)
+ggplot(data=hsp_cov_per, aes(x=EDUCA,y=Freq,fill=HLTHPLN1)) + geom_bar(stat="identity") + labs(title="Proportion of Respondents Who\nHave Healthcare Coverage of Any Type", subtitle="Hispanic", x="Education Level", y="Frequency", fill="Healthcare\nCoverage")
+View(hsp_cov_per)
+```
+Looking at the bar plots and the values of the frequency tables, there appears to be an association between race and healthcare coverage of any type, controlling for educational level. The proportion of Asians and Hispanics who have coverage is below the proportion of Whites who have coverage at every level of education. The proportion of Blacks who have health coverage is below the proportion of Whites who have coverage at every level of education except for one i.e. "highest grade or year of school completed" - Grades 1-8 (elementary). 
+
+I used education as a surrogate for socioeconomic status. However, it is not a perfect substitute, and factors such as income level, employment status, the presence of a chronic health condition and disability status have also been shown to impact the likeliood of having healthcare coverage. The next steps I would take in this analysis would be to control for these variables. I also plan to do associative statistical testing, such as logistical regression, to further quantify the relationships between race/ethnicity and the likelihood of having healthcare coverage. 
+
+**Research quesion 2:**
+Among people with healthcare coverage, is there an association between race/ethnicity and the likelihood of receiving preventative care, specifically prostate-specific antigen (PSA) or pap smear testing (based on sex) and diabetes screening?
+
+To limit the scope of this analysis, I only used the four most prominent races in this survey: White (non-Hispanic), Black (non-Hispanic), Asian (non-hispanic), and Hispanic.
+
+In order to control for the presence of healthcare coverage, I opted to only included individuals who have healthcare coverage, as those who do not would be less likely to receive preventative services. Further, since there are many forms of preventative care, I selected three for this analysis: diabetes, prostate-specific antigens, and pap tests. Diabetes tests are indicated for both men and women; whereas, PSA and pap smear tests are only indicated for men or women, respectively. Although technically women can receive PSA tests, women surveyed were not questioned about PSA testing as part of the BRFSS.
+```{r}
+#Create a dataframe for each preventative care test. Note, PDIABTST is whether or not someone received a diabetes test while PCPSARE1 is whether or not someone had a diabetes test recommended to them by a doctor.
+#Now, create frequency tables that display the percentage of samples who have recieved tests across each race. Plot these tables. 
+race_pdiab <- brfss %>%
+  filter(X.RACE == 1 | X.RACE == 2 | X.RACE == 4 | X.RACE == 8) %>%
+  filter(HLTHPLN1 == 1) %>%
+  filter(PDIABTST == 1 | PDIABTST == 2) %>%
+  select(X.RACE, PDIABTST)
+race_diab_per <- prop.table(with(race_pdiab, table(X.RACE,PDIABTST)), margin =1)
+race_diab_per <- data.frame(race_diab_per)
+View(race_diab_per)
+ggplot(data=race_diab_per, aes(x=X.RACE, y=Freq, fill=PDIABTST)) + geom_bar(stat="identity") + labs(title="Proportion of Respondents Who\nHave Received a Diabetes Screening", x="Race/Ethnicity", y="Frequency", fill="Has Received\nDiabetes Screening")
+
+race_psarec <- brfss %>%
+  filter(X.RACE == 1 | X.RACE == 2 | X.RACE == 4 | X.RACE == 8) %>%
+  filter(HLTHPLN1 == 1) %>%
+  filter(PCPSARE1 == 1 | PCPSARE1 == 2) %>%
+  select(X.RACE, PCPSARE1)
+race_psarec_per <- prop.table(with(race_psarec, table(X.RACE, PCPSARE1)), margin = 1)
+race_psarec_per <- data.frame(race_psarec_per)
+View(race_psarec_per)
+ggplot(data=race_psarec_per, aes(x=X.RACE, y=Freq, fill=PCPSARE1)) + geom_bar(stat="identity") + labs(title="Proportion of Respondents Who\nHave Been Recommended a PSA Test", x="Race/Ethnicity", y="Frequency", fill="Has Been Recommended\na PSA Test")
+
+race_psa <- brfss %>%
+  filter(X.RACE == 1 | X.RACE == 2 | X.RACE == 4 | X.RACE == 8) %>%
+  filter(HLTHPLN1 == 1) %>%
+  filter(PSATEST1 == 1 | PSATEST1 == 2) %>%
+  select(X.RACE, PSATEST1)
+race_psa_per <- prop.table(with(race_psa, table(X.RACE, PSATEST1)), margin = 1)
+race_psa_per <- data.frame(race_psa_per)
+View(race_psa_per)
+ggplot(data=race_psa_per, aes(x=X.RACE, y=Freq, fill=PSATEST1)) + geom_bar(stat="identity") + labs(title="Proportion of Respondents Who\nHave Received a PSA Test", x="Race/Ethnicity", y="Frequency", fill="Has Received\n PSA Test")
+
+race_pap <- brfss %>%
+  filter(X.RACE == 1 | X.RACE == 2 | X.RACE == 4 | X.RACE == 8) %>%
+  filter(HLTHPLN1 == 1) %>%
+  filter(HADPAP2 == 1 | HADPAP2 == 2) %>%
+  select(X.RACE, HADPAP2)
+race_pap_per <- prop.table(with(race_pap, table(X.RACE, HADPAP2)), margin = 1)
+race_pap_per <- data.frame(race_pap_per)
+View(race_pap_per)
+ggplot(data=race_pap_per, aes(x=X.RACE, y=Freq, fill=HADPAP2)) + geom_bar(stat="identity") + labs(title="Proportion of Respondents Who\nHave Received Pap Test", x="Race/Ethnicity", y="Frequency", fill="Has Received\n Pap Test")
+```
+Looking at the bar plots and the frequency tables, there appears to be an association between race/ethnicity and preventative health care. People of color are less likely to have recieved both pap smears and PSA tests than white counterparts. This is particularly noticeable among Asian respondants. 
+
+While these results are interesting, there are numerous other factors that influence receipt of preventative care. The presence of obesity and family history of diabetes are both risk factors for diabetes and impact the likelihood of screening. Age and family history may impact the likelihood of PSA or pap testing, and neither of these variables are controlled for in this analysis. Future analysis would attempt to control for other confounders such as obesity, age, and family history.
+
+**Research quesion 3:**
+Is identifying as transgender associated with poor mental health, and if so, does the association vary amongst transgender men, transgender women, and transgender nonconforming individuals?
+```{r}
+#Create a dataframe that displays transgender status and number of days in the past 30 days that a sample's mental health was not good. 
+#The first data frame includes samples who experienced 0 days without good mental health. 
+tgender_ment <- brfss %>%
+  filter(TRNSGNDR == 1 | TRNSGNDR == 2 | TRNSGNDR == 3 | TRNSGNDR == 4) %>%
+  filter(MENTHLTH != 77 & MENTHLTH != 99) %>%
+  filter(!is.na(MENTHLTH)) %>%
+  select(TRNSGNDR,MENTHLTH)
+tgender_ment <- tgender_ment %>%
+  mutate(MENTHLTH = ifelse(MENTHLTH == 88, 0, MENTHLTH))
+tgender_days <- tgender_ment %>%
+  group_by(TRNSGNDR) %>%
+  summarize(mean_days = mean(MENTHLTH))
+View(tgender_days)
+ggplot(data = tgender_days, aes(x=TRNSGNDR, y=mean_days)) +geom_bar(stat="identity") + labs(title="Mean Number of Days\nExperiencing Poor Mental Health", subtitle = "All Respondents", x="Gender Identity", y="Mean Number of Days")
+
+#Now, create a dataframe that only includes samples who experienced at least one day of poor mental health. 
+tgender_ment_nonzero <- tgender_ment %>%
+  filter(MENTHLTH != 0) %>%
+  select(TRNSGNDR, MENTHLTH)
+tgender_days_nonzero <- tgender_ment_nonzero %>%
+  group_by(TRNSGNDR) %>%
+  summarize(mean_days = mean(MENTHLTH))
+View(tgender_days_nonzero)
+ggplot(data = tgender_days_nonzero, aes(x=TRNSGNDR, y=mean_days)) +geom_bar(stat="identity") + labs(title="Mean Number of Days\nExperiencing Poor Mental Health", subtitle = "Respondents With At Least One Day of Poor Mental Health", x="Gender Identity", y="Mean Number of Days")
+```
+There appears to be an association between identifying as transgender and poor mental health. Both when all respondents are included and when only respondents who endorse at least one day of poor mental health, individuals who identify as transgender noncomforming have the highest mean number of days experiencing stress, depression, and/or emotional problems. Additionally, all transgender groups appear to have a higher mean number of days experiencing stress, depression, and/or emotional problems compared to cisgender individuals. 
+
